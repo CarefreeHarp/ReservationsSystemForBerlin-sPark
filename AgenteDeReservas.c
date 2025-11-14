@@ -14,7 +14,9 @@
 #include "ModulosDeDefinicion/ModuloAgente.h" //Se incluye el modulo que contiene las declaraciones de las funciones y estructuras
 
 
-int main(){
+int main(int argc, char *argv[]){
+
+    return tomarArgumentosAgente(argc, argv);
     
     printf("Hola mundo Agente\n");
     return 0;
