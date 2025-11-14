@@ -1,8 +1,0 @@
-{
-    "files.associations": {
-        "stdbool.h": "c",
-        "modulocontrolador.h": "c",
-        "fcntl.h": "c",
-        "pthread.h": "c"
-    }
-}
