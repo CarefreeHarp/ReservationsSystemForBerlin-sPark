@@ -13,7 +13,7 @@ int main(int argc, char *argv[]){
     pthread_t hilos[10];
     RetornoArgumentos argumentos;
     Reloj* reloj = malloc(sizeof(Reloj));
-    Parque parques[12];
+    Parque parques[13];
 
     argumentos = tomarArgumentosControlador(argc, argv);
     if(argumentos.retorno == -1){
@@ -22,9 +22,17 @@ int main(int argc, char *argv[]){
     reloj->segHoras = argumentos.segHoras;
     reloj->horaIni = argumentos.horaIni;
     reloj->horaFin = argumentos.horaFin;
+    inicializarParques(argumentos, parques);
     pthread_create(hilos, NULL, manipularReloj, reloj);
+    pthread_create(hilos+1, NULL, reportePorHora, parques);
 
-    pthread_create(hilos+2, NULL, recibirSolicitudes, argumentos.pipeRecibe);
+    /*Empaquetado*/
+    Paquete* paquete = malloc(sizeof(Paquete));
+    paquete->reloj = reloj;
+    paquete->argumentos = argumentos;
+    paquete->parques = parques;
+
+    pthread_create(hilos+2, NULL, recibirMensajes, paquete);
     
 
     void* retornoPipe;
@@ -33,7 +41,10 @@ int main(int argc, char *argv[]){
         return -1;
     }
     pthread_join(hilos[0], NULL);
+    pthread_join(hilos[1],NULL);
 
+
+    free(reloj);
 
     return 0;
 }

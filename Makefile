@@ -21,8 +21,6 @@ all: $(PROGRAMAS)
 
 AgenteDeReservas:
 	mkdir -p $(EJECUTABLES)
-#Cada vez que se compile, borraremos el fichero del pipe que creamos para que no haya errores
-#rm -f /tmp/PIPE_COMUNICATOR 
 
 	$(GCC) -c $(DIRECTORIOMODULOS)/$(MODULOAGENTE).c -o $(EJECUTABLES)/$(MODULOAGENTE).o
 	$(GCC) $@.c $(EJECUTABLES)/$(MODULOAGENTE).o -o $(EJECUTABLES)/$@ $(FLAGS)
@@ -31,8 +29,6 @@ AgenteDeReservas:
 	
 ControladorDeReservas:
 	mkdir -p $(EJECUTABLES)
-#Cada vez que se compile, borraremos el fichero del pipe que creamos para que no haya errores
-#rm -f /tmp/PIPE_COMUNICATOR 
 
 	$(GCC) -c $(DIRECTORIOMODULOS)/$(MODULOCONTROLADOR).c -o $(EJECUTABLES)/$(MODULOCONTROLADOR).o
 	$(GCC) $@.c $(EJECUTABLES)/$(MODULOCONTROLADOR).o -o $(EJECUTABLES)/$@ $(FLAGS)

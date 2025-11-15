@@ -33,6 +33,7 @@ typedef struct {
     int retorno;
 } RetornoArgumentos;
 
+
 typedef struct {
     int horaIni;
     int segHoras;
@@ -52,13 +53,30 @@ typedef struct {
     int cuantasSalen;
     int cuantasEntran;
     int aforoMaximo;
+    int cantPersonas;
     int hora;
 } Parque;
+
+typedef struct {
+  bool reserva;
+  char nombreAgente[256];
+  int horaSolicitada;
+  int cantPersonas;
+  char respuesta[256];
+  char nombreFamilia[256];
+} Peticion;
+
+typedef struct{
+    Reloj* reloj;
+    RetornoArgumentos argumentos;
+    Parque* parques;
+} Paquete;
 
 
 RetornoArgumentos tomarArgumentosControlador(int argc, char *argv[]);
 void* manipularReloj(void* recibe);
-void* recibirSolicitudes(void* parametro);
+void* recibirMensajes(void* paquete);
 void* reportePorHora(void* parques);
+void inicializarParques(RetornoArgumentos argumentos, Parque parques[]);
 
 #endif

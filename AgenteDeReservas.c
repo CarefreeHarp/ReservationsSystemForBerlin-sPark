@@ -16,8 +16,13 @@
 
 int main(int argc, char *argv[]){
 
-    return tomarArgumentosAgente(argc, argv);
-    
-    printf("Hola mundo Agente\n");
+
+    RetornoAgentes argumentos = tomarArgumentosAgente(argc, argv);
+    if(argumentos.retorno == -1){
+        return -1;
+    }
+    if(leerArchivo(argumentos) == -1){
+        return -1;
+    }
     return 0;
 }
