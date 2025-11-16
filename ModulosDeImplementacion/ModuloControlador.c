@@ -10,7 +10,6 @@ int solicitudesReProgramadas = 0;
 
 RetornoArgumentos tomarArgumentosControlador(int argc, char *argv[]) {
   RetornoArgumentos retorno;
-  retorno.retorno = 0;
 
   if (argc < 11) {
     printf("Error: Número insuficiente de argumentos.\n");
@@ -48,9 +47,29 @@ RetornoArgumentos tomarArgumentosControlador(int argc, char *argv[]) {
   }
 
   retorno.horaIni = atoi(argv[posiciones[0] + 1]);
+  if (retorno.horaIni == 0) {
+    printf("La hora inicial es inválida");
+    retorno.retorno = -1;
+    return retorno;
+  }
   retorno.horaFin = atoi(argv[posiciones[1] + 1]);
+  if (retorno.horaFin == 0) {
+    printf("La hora final es inválida");
+    retorno.retorno = -1;
+    return retorno;
+  }
   retorno.segHoras = atoi(argv[posiciones[2] + 1]);
+  if (retorno.segHoras == 0) {
+    printf("segHoras es inválido");
+    retorno.retorno = -1;
+    return retorno;
+  }
   retorno.total = atoi(argv[posiciones[3] + 1]);
+  if (retorno.total == 0) {
+    printf("El valor del aforo máximo es inválido");
+    retorno.retorno = -1;
+    return retorno;
+  }
 
   char *pipeRecibe = argv[posiciones[4] + 1];
 
@@ -66,6 +85,7 @@ RetornoArgumentos tomarArgumentosControlador(int argc, char *argv[]) {
     return retorno;
   }
 
+  retorno.retorno = 0;
   retorno.pipeRecibe = pipeRecibe;
 
   return retorno;
@@ -81,6 +101,8 @@ int reporteFinal(Parque *parques, RetornoArgumentos argumentos) {
   int horasMenosPico[12];
   horasMenosPico[0] = argumentos.horaIni;
   int k = 1;
+
+  Peticion *terminarEjecucion;
 
   for (int i = 1; i < argumentos.horaFin - argumentos.horaIni; i++) {
     if ((parques + i)->cantPersonas > mayorCantidad) {
@@ -125,15 +147,19 @@ int reporteFinal(Parque *parques, RetornoArgumentos argumentos) {
   strcpy(nombreNamedPipe, "/tmp/");
   strcat(nombreNamedPipe, argumentos.pipeRecibe);
   int fd_write = open(nombreNamedPipe, O_RDWR);
-
   if (fd_write < 0) {
-    perror("PipeRecibe (FINAL): ");
+    perror("PipeRecibe (FINAL)");
     return -1;
   }
-  Peticion *terminarEjecucion = malloc(sizeof(Peticion));
-  write(fd_write, terminarEjecucion, sizeof(Peticion));
+  terminarEjecucion = malloc(sizeof(Peticion));
+  if (write(fd_write, terminarEjecucion, sizeof(Peticion)) == -1) {
+    perror("Escribiendo en el pipe el mensaje final");
+    return -1;
+  }
 
-  close(fd_write);
+  if (close(fd_write) == -1) {
+    perror("Cerrando el pipe del mensaje final");
+  }
 }
 
 void *manipularReloj(void *recibe) {
@@ -141,7 +167,7 @@ void *manipularReloj(void *recibe) {
   reloj->horaActual = reloj->horaIni;
   while (reloj->horaActual < reloj->horaFin) {
     printf("==============================================\n");
-    printf("La hora acual es %d:00\n", reloj->horaActual);
+    printf("LA HORA ACTUAL ES %d:00\n", reloj->horaActual);
     pthread_mutex_lock(&reportePorHoraM);
     notificar = true;
     pthread_cond_signal(&condiReportePorHora);
@@ -150,7 +176,7 @@ void *manipularReloj(void *recibe) {
     reloj->horaActual++;
   }
   terminado = true;
-  printf("\n\nLA HORA ACUTAL ES %d:00 Y SE CIERRA EL PARQUE ~~~\n", reloj->horaActual);
+  printf("\n\nLA HORA ACTUAL ES %d:00 Y SE CIERRA EL PARQUE ~~~\n", reloj->horaActual);
   pthread_mutex_lock(&reportePorHoraM);
   notificar = true;
   pthread_cond_signal(&condiReportePorHora);
@@ -163,31 +189,38 @@ void *recibirMensajes(void *paquete) {
   Paquete *Parametro = (Paquete *)paquete;
 
   char nombreNamedPipe[256];
-  strcpy(nombreNamedPipe, "/tmp/");
-  strcat(nombreNamedPipe, Parametro->argumentos.pipeRecibe);
+  char horaNuevaChar[256];
   Peticion *peticion = malloc(sizeof(Peticion));
   Peticion *respuesta = malloc(sizeof(Peticion));
+  Parque *aux;
+  Familia *aux2;
   bool admitido = true;
-  int error;
+  int error, a, b, c, numeroFamilia, horaNueva, fdwrite;
+  int *horaEnviar;
 
-  mkfifo(nombreNamedPipe, 0640);
+  strcpy(nombreNamedPipe, "/tmp/");
+  strcat(nombreNamedPipe, Parametro->argumentos.pipeRecibe);
+  unlink(nombreNamedPipe);
+  if (mkfifo(nombreNamedPipe, 0640) == -1) {
+    perror("Creando el Pipe Principal");
+    return (void *)-1;
+  }
   int fdread = open(nombreNamedPipe, O_RDWR);
-
   if (fdread < 0) {
-    perror("PipeRecibe: ");
+    perror("PipeRecibe");
     return (void *)-1;
   }
 
   while (!terminado) {
     error = read(fdread, peticion, sizeof(Peticion));
+    if (error == -1) {
+      perror("Error leyendo en el pipe principal");
+      return (void *)-1;
+    }
     if (terminado) {
       break;
     }
     pthread_mutex_lock(&reportePorHoraM);
-    if (error == -1) {
-      perror("Error leyendo en el pipe principal: ");
-      exit(EXIT_FAILURE);
-    }
     if (peticion->reserva) {
       respuesta->cantPersonas = peticion->cantPersonas;
       respuesta->horaSolicitada = peticion->horaSolicitada;
@@ -196,19 +229,18 @@ void *recibirMensajes(void *paquete) {
 
       if (peticion->cantPersonas <= Parametro->argumentos.total) {
         if (peticion->horaSolicitada < Parametro->argumentos.horaFin - 1) {
-          int c;
           if (peticion->horaSolicitada > Parametro->argumentos.horaIni) {
-            int a = Parametro->argumentos.horaIni;
-            int b = peticion->horaSolicitada;
+            a = Parametro->argumentos.horaIni;
+            b = peticion->horaSolicitada;
             c = b - a;
           } else {
             c = 0;
           }
-          Parque *aux = Parametro->parques;
+          aux = Parametro->parques;
           int personasEnElParque = (aux + c)->cantPersonas + peticion->cantPersonas;
           if (personasEnElParque <= Parametro->argumentos.total && peticion->horaSolicitada >= Parametro->reloj->horaActual) {
-            int numeroFamilia = (aux + c)->cantFamilias;
-            Familia *aux2 = (aux + c)->familias;
+            numeroFamilia = (aux + c)->cantFamilias;
+            aux2 = (aux + c)->familias;
             aux2 += numeroFamilia;
 
             aux2->cantPersonas = peticion->cantPersonas;
@@ -236,8 +268,8 @@ void *recibirMensajes(void *paquete) {
             for (int i = c; i < Parametro->argumentos.horaFin - Parametro->argumentos.horaIni - 1; i++) {
               personasEnElParque = (aux + i)->cantPersonas + peticion->cantPersonas;
               if (personasEnElParque <= Parametro->argumentos.total && (aux + i)->hora >= Parametro->reloj->horaActual) {
-                int numeroFamilia = (aux + i)->cantFamilias;
-                Familia *aux2 = (aux + i)->familias;
+                numeroFamilia = (aux + i)->cantFamilias;
+                aux2 = (aux + i)->familias;
                 aux2 += numeroFamilia;
 
                 aux2->cantPersonas = peticion->cantPersonas;
@@ -261,8 +293,7 @@ void *recibirMensajes(void *paquete) {
 
                 strcpy(respuesta->respuesta, "RESERVA REPROGRAMADA: PARA EL MISMO DIA A LAS ");
                 solicitudesReProgramadas++;
-                int horaNueva = (aux + i)->hora;
-                char horaNuevaChar[256];
+                horaNueva = (aux + i)->hora;
                 sprintf(horaNuevaChar, "%d", horaNueva);
                 strcat(respuesta->respuesta, horaNuevaChar);
                 strcat(respuesta->respuesta, ":00\n");
@@ -290,43 +321,60 @@ void *recibirMensajes(void *paquete) {
 
       admitido = false;
       if (!terminado) {
-        // responde;
+        // responde
         strcpy(nombreNamedPipe, "/tmp/");
         strcat(nombreNamedPipe, respuesta->nombreAgente);
-        int fdwrite = open(nombreNamedPipe, O_RDWR);
+        fdwrite = open(nombreNamedPipe, O_RDWR); // Siempre que se recibe una peticion, se abre el pipe
+        if (fdwrite < 0) {
+          perror("Abriendo el pipe de un agente");
+          return (void *)-1;
+        }
         error = write(fdwrite, respuesta, sizeof(Peticion));
         if (error == -1) {
           perror("Error escribiendo en el pipe principal: ");
           exit(EXIT_FAILURE);
         }
-        close(fdwrite);
+      }
+      if (close(fdwrite) == -1) {
+        perror("Cerrando el pipe de un agente");
       }
     } else {
       printf("UN AGENTE SE REGISTRÓ, SE LLAMA: %s\n", peticion->nombreAgente);
       agentesTotalesRegistrados++;
+      horaEnviar = &Parametro->reloj->horaActual;
       strcpy(nombreNamedPipe, "/tmp/");
       strcat(nombreNamedPipe, peticion->nombreAgente);
-      int fdwrite = open(nombreNamedPipe, O_RDWR);
-      int *horaEnviar = &Parametro->reloj->horaActual;
+      fdwrite = open(nombreNamedPipe, O_RDWR); // Siempre que se recibe una peticion, se abre el pipe
+      if (fdwrite < 0) {
+        perror("Abriendo el pipe de un agente");
+        return (void *)-1;
+      }
       error = write(fdwrite, horaEnviar, sizeof(int));
       if (error == -1) {
         perror("Error escribiendo en el pipe principal: ");
         exit(EXIT_FAILURE);
       }
-      close(fdwrite);
+      if (close(fdwrite) == -1) {
+        perror("Cerrando el pipe de un agente");
+      }
     }
     pthread_mutex_unlock(&reportePorHoraM);
   }
+
   close(fdread);
   strcpy(nombreNamedPipe, "/tmp/");
   strcat(nombreNamedPipe, Parametro->argumentos.pipeRecibe);
   unlink(nombreNamedPipe);
+
+  free(peticion);
+  free(respuesta);
+
   return NULL;
 }
 
 void *reportePorHora(void *parques) {
   Parque *parquesActuales = (Parque *)parques;
-  Familia *aux = malloc(sizeof(Familia));
+  Familia *aux;
   int i = 0;
   bool resultados = false;
   while (true) {
@@ -392,11 +440,12 @@ void *reportePorHora(void *parques) {
 void inicializarParques(RetornoArgumentos argumentos, Parque parques[]) {
   int cantidadDeParques = argumentos.horaFin - argumentos.horaIni;
   for (int i = 0; i < 13; i++) {
-    parques[i].hora = -1;
+    parques[i].hora = -1; // Para saber hasta donde llegan los parques
+    // En el caso de tener 12 parques (el maximo) de las 7h a las 19h y el 13 siempre lleva -1
   }
   for (int i = 0; i < cantidadDeParques; i++) {
     parques[i].hora = i + argumentos.horaIni;
-    parques[i].aforoMaximo = i + argumentos.total;
+    parques[i].aforoMaximo = argumentos.total;
     parques[i].cantFamilias = 0;
     parques[i].cuantasEntran = 0;
     parques[i].cuantasSalen = 0;

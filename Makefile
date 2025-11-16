@@ -18,14 +18,13 @@ PROGRAMAS = AgenteDeReservas ControladorDeReservas
 
 
 all: $(PROGRAMAS)
+#En caso de error creando el pipe principal, ejecutar rm -f /tmp/<nombre>
 
 AgenteDeReservas:
 	mkdir -p $(EJECUTABLES)
 
 	$(GCC) -c $(DIRECTORIOMODULOS)/$(MODULOAGENTE).c -o $(EJECUTABLES)/$(MODULOAGENTE).o
 	$(GCC) $@.c $(EJECUTABLES)/$(MODULOAGENTE).o -o $(EJECUTABLES)/$@ $(FLAGS)
-
-
 	
 ControladorDeReservas:
 	mkdir -p $(EJECUTABLES)

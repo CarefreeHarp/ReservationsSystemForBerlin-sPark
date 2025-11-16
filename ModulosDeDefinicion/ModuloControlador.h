@@ -18,7 +18,7 @@ que se necesitan compartir entre varios archivos .c del proyecto.*/
 #include <fcntl.h> // Control de apertura de archivos 
 #include <stdbool.h> // Tipo de dato booleano (true, false)
 #include <pthread.h> //manejo de hilos
-#include <semaphore.h>
+#include <semaphore.h> //manejo de named semaphores
 
 extern pthread_mutex_t reportePorHoraM;
 extern pthread_cond_t condiReportePorHora;

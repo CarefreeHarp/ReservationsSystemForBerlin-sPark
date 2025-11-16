@@ -3,30 +3,31 @@
  * Fecha:
  * Autores: Daniel Felipe Ramirez Vargas - Guillermo Andrés Aponte Cárdenas - David Tobar Artunduaga           *
  * Materia: Sistemas Operativos                                                                                *
- * Descripción: 
-*************************************************************************************/
+ * Descripción:
+ *************************************************************************************/
 
-#include <unistd.h> //librería para utilizar funciones como fork() y getpid()
-#include <pthread.h> //librería para manejo de hilos 
-#include <stdlib.h>// Para utilizar funciones como exit, perror y EXIT_FAILURE (manejo de errores)
-#include <fcntl.h>// Incluye la biblioteca para utilizar open y la bandera O_RDWR
-#include <stdio.h> //Librería para manejo de entradas y salidas
 #include "ModulosDeDefinicion/ModuloAgente.h" //Se incluye el modulo que contiene las declaraciones de las funciones y estructuras
 
+int main(int argc, char *argv[]) {
 
-int main(int argc, char *argv[]){
+  sem_t *fd_sem = sem_open("/terminarAgentes", 0);
+  if (fd_sem == SEM_FAILED) {
+    perror("Abriendo el semaforo");
+    return -1;
+  }
 
-    sem_t* fd_sem = sem_open("/terminarAgentes", 0);
+  RetornoAgentes argumentos = tomarArgumentosAgente(argc, argv);
+  if (argumentos.retorno == -1) {
+    return -1;
+  }
+  if (leerArchivo(argumentos) == -1) {
+    return -1;
+  }
 
-    RetornoAgentes argumentos = tomarArgumentosAgente(argc, argv);
-    if(argumentos.retorno == -1){
-        return -1;
-    }
-    if(leerArchivo(argumentos) == -1){
-        return -1;
-    }
-    
-    sem_wait(fd_sem);
-    printf("AGENTE %s TERMINA.\n", argumentos.nombre);
-    return 0;
+  sem_wait(fd_sem);
+  printf("AGENTE %s TERMINA.\n", argumentos.nombre);
+  free(argumentos.nombre);
+  free(argumentos.fileSolicitud);
+  free(argumentos.pipeRecibe);
+  return 0;
 }

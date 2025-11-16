@@ -27,6 +27,7 @@ RetornoAgentes tomarArgumentosAgente(int argc, char *argv[]) {
       posiciones[2] = i;
     }
   }
+
   for (int i = 0; i < 3; i++) {
     if (!argumentos[i]) {
       printf("Error: Falta el argumento\n");
@@ -44,7 +45,7 @@ RetornoAgentes tomarArgumentosAgente(int argc, char *argv[]) {
 }
 
 int leerArchivo(RetornoAgentes argumentos) {
-  int fd_write, fd_read, error;
+  int fd_write, fd_read, error, horaActual;
   int *horaRecibida = malloc(sizeof(int));
   char nombreNamedPipe[256];
   char pipeRecibe[256];
@@ -60,48 +61,83 @@ int leerArchivo(RetornoAgentes argumentos) {
   strcat(pipeRecibe, argumentos.nombre);
 
   fd_write = open(nombreNamedPipe, O_RDWR);
+  if (fd_write < 0) {
+    perror("Abriendo PipeRecibe");
+    return -1;
+  }
 
-  mkfifo(pipeRecibe, 0640);
+  unlink(pipeRecibe);
+  if(mkfifo(pipeRecibe, 0640) == -1){
+    perror("Creando el Pipe Principal");
+    return -1;
+  }
   fd_read = open(pipeRecibe, O_RDWR);
+  if (fd_read < 0) {
+    perror("Abriendo Pipe del Agente");
+    return -1;
+  }
   FILE *file;
   file = fopen(argumentos.fileSolicitud, "r");
   if (file == NULL) {
     perror("Error al abrir el archivo de solicitudes");
     return -1;
   }
-  int horaActual = 0;
+  horaActual = 0;
   strcpy(saludoInicial->nombreAgente, argumentos.nombre);
   saludoInicial->reserva = false;
   error = write(fd_write, saludoInicial, sizeof(Peticion));
   if (error == -1) {
     perror("Error escribiendo en el pipe del agente");
-    exit(EXIT_FAILURE);
+    return -1;
   }
   error = read(fd_read, horaRecibida, sizeof(int));
   if (error == -1) {
     perror("Error leyendo en el pipe del agente");
-    exit(EXIT_FAILURE);
+    return -1;
   }
   printf("HORA ACTUAL RECIBIDA DESDE EL CONTROLADOR %d\n", *horaRecibida);
 
+  while (true) {
+    if (fgets(bufferArchivo, sizeof(bufferArchivo), file) == NULL) {
+      if (!feof(file)) {
+        perror("Leyendo del archivo");
+        return -1;
+      } else {
+        break;
+      }
+    }
 
-  while (fgets(bufferArchivo, sizeof(bufferArchivo), file)) {
     bufferArchivo[strcspn(bufferArchivo, "\n")] = 0;
     strcpy(bufferAux, bufferArchivo);
     char *tokens = strtok(bufferAux, ",");
+    if (!tokens)
+      continue;
+
     strcpy(solicitudReserva->nombreFamilia, tokens);
     tokens = strtok(NULL, ",");
+    if (!tokens)
+      continue;
+
     solicitudReserva->horaSolicitada = atoi(tokens);
     tokens = strtok(NULL, ",");
+    if (!tokens)
+      continue;
+
     solicitudReserva->cantPersonas = atoi(tokens);
     solicitudReserva->reserva = true;
     strcpy(solicitudReserva->nombreAgente, argumentos.nombre);
 
-    write(fd_write, solicitudReserva, sizeof(Peticion));
-    read(fd_read, respuesta, sizeof(Peticion));
+    if (write(fd_write, solicitudReserva, sizeof(Peticion)) == -1) {
+      perror("Error escribiendo en el Pipe Principal");
+      return -1;
+    }
+    if (read(fd_read, respuesta, sizeof(Peticion)) == -1) {
+      perror("Error leyendo del Pipe Principal");
+      return -1;
+    }
 
     printf("PETICION: {\nNombreFamilia: %s\nHoraSolicitada: %d:00\nPersonasSolicitadas: %d\n} RESPUESTA: %s\n\n", respuesta->nombreFamilia, respuesta->horaSolicitada, respuesta->cantPersonas, respuesta->respuesta);
-    sleep(1);
+    sleep(2);
   }
   close(fd_read);
   close(fd_write);
@@ -109,4 +145,8 @@ int leerArchivo(RetornoAgentes argumentos) {
   strcpy(pipeRecibe, "/tmp/");
   strcat(pipeRecibe, argumentos.nombre);
   unlink(pipeRecibe);
+
+  free(saludoInicial);
+  free(solicitudReserva);
+  free(respuesta);
 }
