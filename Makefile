@@ -1,10 +1,17 @@
-#************************************************************************************
-# Pontificia Universidad Javeriana                                                  *
-# Fecha:
-# Autores: Daniel Felipe Ramirez Vargas - Guillermo Andrés Aponte Cárdenas          *
-# Materia: Sistemas Operativos                                                      *
-# Descripción: 
-#************************************************************************************/
+#Makefile dedicado a la automatización de la compilación del simulador de reservas
+
+#En la raíz del proyecto existe un directorio donde se guardan los módulos de definiciones
+#de estructuras, variables globales, importe de librerías y prototipos de funciones
+
+#Además, en la raíz del proyecto se encuentra otro directorio dedicado a guardar los módulos que
+#contienen las implementaciones de las funciones
+
+#En la misma raíz del proyecto se encuentran los ficheros que contienen el main de los controladores
+#y el del controlador.
+
+#Para ejecutar, asegurarse de ejecutar la regla clean y luego all.
+#Una vez ejecutados esos dos comandos, los archivos de solicitud que leen los agentes
+#se deben localizar en el mismo Path de donde se ejecute el comando para correr el ejecutable 
 
 GCC = gcc
 FLAGS = -lpthread #Se necesita para utilizar la biblioteca pthread
@@ -18,7 +25,7 @@ PROGRAMAS = AgenteDeReservas ControladorDeReservas
 
 
 all: $(PROGRAMAS)
-#En caso de error creando el pipe principal, ejecutar rm -f /tmp/<nombre>
+#En caso de error creando el pipe principal, ejecutar rm -f /tmp/<nombre del pipe>
 
 AgenteDeReservas:
 	mkdir -p $(EJECUTABLES)
@@ -32,6 +39,6 @@ ControladorDeReservas:
 	$(GCC) -c $(DIRECTORIOMODULOS)/$(MODULOCONTROLADOR).c -o $(EJECUTABLES)/$(MODULOCONTROLADOR).o
 	$(GCC) $@.c $(EJECUTABLES)/$(MODULOCONTROLADOR).o -o $(EJECUTABLES)/$@ $(FLAGS)
 
-clear:
+clean:
 	$(RM) -rf $(EJECUTABLES)
 
