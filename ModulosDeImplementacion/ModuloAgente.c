@@ -45,28 +45,28 @@ RetornoAgentes tomarArgumentosAgente(int argc, char *argv[]) {
 
 int leerArchivo(RetornoAgentes argumentos) {
   int fd_write, fd_read, error;
-  int *horaRecibida;
+  int *horaRecibida = malloc(sizeof(int));
   char nombreNamedPipe[256];
   char pipeRecibe[256];
   char bufferArchivo[256];
   char bufferAux[256];
   Peticion *saludoInicial = malloc(sizeof(Peticion));
-  Peticion *solicitudReserva;
-  Peticion *respuesta;
+  Peticion *solicitudReserva = malloc(sizeof(Peticion));
+  Peticion *respuesta = malloc(sizeof(Peticion));
   strcpy(nombreNamedPipe, "/tmp/");
   strcat(nombreNamedPipe, argumentos.pipeRecibe);
 
   strcpy(pipeRecibe, "/tmp/");
   strcat(pipeRecibe, argumentos.nombre);
 
-  fd_write = open(nombreNamedPipe, O_WRONLY);
+  fd_write = open(nombreNamedPipe, O_RDWR);
 
   mkfifo(pipeRecibe, 0640);
   fd_read = open(pipeRecibe, O_RDWR);
   FILE *file;
   file = fopen(argumentos.fileSolicitud, "r");
   if (file == NULL) {
-    perror("Error al abrir el archivo de solicitudes: ");
+    perror("Error al abrir el archivo de solicitudes");
     return -1;
   }
   int horaActual = 0;
@@ -78,19 +78,17 @@ int leerArchivo(RetornoAgentes argumentos) {
     exit(EXIT_FAILURE);
   }
   error = read(fd_read, horaRecibida, sizeof(int));
-  printf("DESPUES\n\n\n");
   if (error == -1) {
-    perror("Error leyendo en el pipe del agente:");
+    perror("Error leyendo en el pipe del agente");
     exit(EXIT_FAILURE);
   }
   printf("HORA ACTUAL RECIBIDA DESDE EL CONTROLADOR %d\n", *horaRecibida);
 
-  char buffer[256];
+
   while (fgets(bufferArchivo, sizeof(bufferArchivo), file)) {
     bufferArchivo[strcspn(bufferArchivo, "\n")] = 0;
     strcpy(bufferAux, bufferArchivo);
     char *tokens = strtok(bufferAux, ",");
-    tokens = strtok(NULL, ",");
     strcpy(solicitudReserva->nombreFamilia, tokens);
     tokens = strtok(NULL, ",");
     solicitudReserva->horaSolicitada = atoi(tokens);
@@ -101,8 +99,9 @@ int leerArchivo(RetornoAgentes argumentos) {
 
     write(fd_write, solicitudReserva, sizeof(Peticion));
     read(fd_read, respuesta, sizeof(Peticion));
-    printf("PETICION: {\nNombreFamilia:%s\nHoraSolicitada:%d\nPersonasSolicitadas:%d\n} RESPUESTA: %s", respuesta->nombreFamilia, respuesta->horaSolicitada, respuesta->cantPersonas, respuesta->respuesta);
-    sleep(2);
+
+    printf("PETICION: {\nNombreFamilia: %s\nHoraSolicitada: %d:00\nPersonasSolicitadas: %d\n} RESPUESTA: %s\n\n", respuesta->nombreFamilia, respuesta->horaSolicitada, respuesta->cantPersonas, respuesta->respuesta);
+    sleep(1);
   }
   close(fd_read);
   close(fd_write);

@@ -4,6 +4,9 @@ pthread_mutex_t reportePorHoraM = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t condiReportePorHora = PTHREAD_COND_INITIALIZER;
 bool terminado = false;
 bool notificar = false;
+int solicitudesNegadas = 0;
+int solicitudesAceptadas = 0;
+int solicitudesReProgramadas = 0;
 
 RetornoArgumentos tomarArgumentosControlador(int argc, char *argv[]) {
   RetornoArgumentos retorno;
@@ -68,10 +71,76 @@ RetornoArgumentos tomarArgumentosControlador(int argc, char *argv[]) {
   return retorno;
 }
 
+int reporteFinal(Parque *parques, RetornoArgumentos argumentos) {
+  int mayorCantidad = parques->cantPersonas;
+  int horasPico[12];
+  horasPico[0] = argumentos.horaIni;
+  int j = 1;
+
+  int menorCantidad = parques->cantPersonas;
+  int horasMenosPico[12];
+  horasMenosPico[0] = argumentos.horaIni;
+  int k = 1;
+
+  for (int i = 1; i < argumentos.horaFin - argumentos.horaIni; i++) {
+    if ((parques + i)->cantPersonas > mayorCantidad) {
+      j = 1;
+      horasPico[0] = argumentos.horaIni + i;
+      mayorCantidad = (parques + i)->cantPersonas;
+    } else if ((parques + i)->cantPersonas < menorCantidad) {
+      k = 1;
+      horasMenosPico[0] = argumentos.horaIni + i;
+      menorCantidad = (parques + i)->cantPersonas;
+    } else if ((parques + i)->cantPersonas == mayorCantidad) {
+      j++;
+      horasPico[j - 1] = argumentos.horaIni + i;
+    } else if ((parques + i)->cantPersonas == menorCantidad) {
+      k++;
+      horasMenosPico[k - 1] = argumentos.horaIni + i;
+    }
+  }
+  printf("====================================================\n");
+  printf("        REPORTE FINAL DEL DIA DE HOY          \n");
+  printf(" CANTIDAD DE SOLICITUDES NEGADAS:         %d  \n", solicitudesNegadas);
+  printf(" CANTIDAD DE SOLICITUDES ACEPTADAS:       %d  \n", solicitudesAceptadas);
+  printf(" CANTIDAD DE SOLICITUDES REPROGRAMADAS:   %d  \n", solicitudesReProgramadas);
+  printf(" HORAS PICO:");
+  for (int i = 0; i < j; i++) {
+    if (i != j - 1) {
+      printf(" %d -", horasPico[i]);
+    } else {
+      printf(" %d\n", horasPico[i]);
+    }
+  }
+  printf(" HORA MENOS CONCURRIDA:");
+  for (int i = 0; i < k; i++) {
+    if (i != k - 1) {
+      printf(" %d -", horasMenosPico[i]);
+    } else {
+      printf(" %d\n", horasMenosPico[i]);
+    }
+  }
+  printf("====================================================\n");
+  char nombreNamedPipe[256];
+  strcpy(nombreNamedPipe, "/tmp/");
+  strcat(nombreNamedPipe, argumentos.pipeRecibe);
+  int fd_write = open(nombreNamedPipe, O_RDWR);
+
+  if (fd_write < 0) {
+    perror("PipeRecibe (FINAL): ");
+    return -1;
+  }
+  Peticion *terminarEjecucion = malloc(sizeof(Peticion));
+  write(fd_write, terminarEjecucion, sizeof(Peticion));
+
+  close(fd_write);
+}
+
 void *manipularReloj(void *recibe) {
   Reloj *reloj = (Reloj *)recibe;
   reloj->horaActual = reloj->horaIni;
   while (reloj->horaActual < reloj->horaFin) {
+    printf("==============================================\n");
     printf("La hora acual es %d:00\n", reloj->horaActual);
     pthread_mutex_lock(&reportePorHoraM);
     notificar = true;
@@ -81,12 +150,12 @@ void *manipularReloj(void *recibe) {
     reloj->horaActual++;
   }
   terminado = true;
-  printf("La hora acual es %d:00\n", reloj->horaActual);
+  printf("\n\nLA HORA ACUTAL ES %d:00 Y SE CIERRA EL PARQUE ~~~\n", reloj->horaActual);
   pthread_mutex_lock(&reportePorHoraM);
   notificar = true;
   pthread_cond_signal(&condiReportePorHora);
   pthread_mutex_unlock(&reportePorHoraM);
-  // Reporte final
+
   return NULL;
 }
 
@@ -102,7 +171,7 @@ void *recibirMensajes(void *paquete) {
   int error;
 
   mkfifo(nombreNamedPipe, 0640);
-  int fdread = open(nombreNamedPipe, O_RDONLY);
+  int fdread = open(nombreNamedPipe, O_RDWR);
 
   if (fdread < 0) {
     perror("PipeRecibe: ");
@@ -111,6 +180,10 @@ void *recibirMensajes(void *paquete) {
 
   while (!terminado) {
     error = read(fdread, peticion, sizeof(Peticion));
+    if (terminado) {
+      break;
+    }
+    pthread_mutex_lock(&reportePorHoraM);
     if (error == -1) {
       perror("Error leyendo en el pipe principal: ");
       exit(EXIT_FAILURE);
@@ -118,38 +191,100 @@ void *recibirMensajes(void *paquete) {
     if (peticion->reserva) {
       respuesta->cantPersonas = peticion->cantPersonas;
       respuesta->horaSolicitada = peticion->horaSolicitada;
+      strcpy(respuesta->nombreFamilia, peticion->nombreFamilia);
       strcpy(respuesta->nombreAgente, peticion->nombreAgente);
 
-      if (peticion->cantPersonas < Parametro->argumentos.total) {
+      if (peticion->cantPersonas <= Parametro->argumentos.total) {
         if (peticion->horaSolicitada < Parametro->argumentos.horaFin - 1) {
-          int a = Parametro->argumentos.horaIni;
-          int b = peticion->horaSolicitada;
-          int c = b - a;
+          int c;
+          if (peticion->horaSolicitada > Parametro->argumentos.horaIni) {
+            int a = Parametro->argumentos.horaIni;
+            int b = peticion->horaSolicitada;
+            c = b - a;
+          } else {
+            c = 0;
+          }
           Parque *aux = Parametro->parques;
           int personasEnElParque = (aux + c)->cantPersonas + peticion->cantPersonas;
-          if (personasEnElParque < Parametro->argumentos.total && peticion->horaSolicitada >= Parametro->reloj->horaActual) {
+          if (personasEnElParque <= Parametro->argumentos.total && peticion->horaSolicitada >= Parametro->reloj->horaActual) {
+            int numeroFamilia = (aux + c)->cantFamilias;
+            Familia *aux2 = (aux + c)->familias;
+            aux2 += numeroFamilia;
+
+            aux2->cantPersonas = peticion->cantPersonas;
+            aux2->horaLlegada = Parametro->argumentos.horaIni + c;
+            strcpy(aux2->nombre, peticion->nombreFamilia);
+
+            numeroFamilia = (aux + c + 1)->cantFamilias;
+            aux2 = (aux + c + 1)->familias;
+            aux2 += numeroFamilia;
+
+            aux2->cantPersonas = peticion->cantPersonas;
+            aux2->horaLlegada = Parametro->argumentos.horaIni + c;
+            strcpy(aux2->nombre, peticion->nombreFamilia);
+
+            (aux + c)->cantFamilias++;
+            (aux + c + 1)->cantFamilias++;
+            (aux + c)->cantPersonas = personasEnElParque;
+            (aux + c + 1)->cantPersonas += peticion->cantPersonas;
+            (aux + c)->cuantasEntran += peticion->cantPersonas;
+            (aux + c + 2)->cuantasSalen += peticion->cantPersonas;
             strcpy(respuesta->respuesta, "RESERVA OK: TODO BIEN\n");
+            solicitudesAceptadas++;
             // La hora solicitada sirve
           } else {
             for (int i = c; i < Parametro->argumentos.horaFin - Parametro->argumentos.horaIni - 1; i++) {
               personasEnElParque = (aux + i)->cantPersonas + peticion->cantPersonas;
-              if (personasEnElParque < Parametro->argumentos.total && peticion->horaSolicitada + i > Parametro->reloj->horaActual) {
-                strcpy(respuesta->respuesta, "RESERVA OK: REPROGRAMADA PARA EL MISMO DIA\n");
+              if (personasEnElParque <= Parametro->argumentos.total && (aux + i)->hora >= Parametro->reloj->horaActual) {
+                int numeroFamilia = (aux + i)->cantFamilias;
+                Familia *aux2 = (aux + i)->familias;
+                aux2 += numeroFamilia;
+
+                aux2->cantPersonas = peticion->cantPersonas;
+                aux2->horaLlegada = Parametro->argumentos.horaIni + i;
+                strcpy(aux2->nombre, peticion->nombreFamilia);
+
+                numeroFamilia = (aux + i + 1)->cantFamilias;
+                aux2 = (aux + i + 1)->familias;
+                aux2 += numeroFamilia;
+
+                aux2->cantPersonas = peticion->cantPersonas;
+                aux2->horaLlegada = Parametro->argumentos.horaIni + i;
+                strcpy(aux2->nombre, peticion->nombreFamilia);
+
+                (aux + i)->cantFamilias++;
+                (aux + i + 1)->cantFamilias++;
+                (aux + i)->cantPersonas = personasEnElParque;
+                (aux + i + 1)->cantPersonas += peticion->cantPersonas;
+                (aux + i)->cuantasEntran += peticion->cantPersonas;
+                (aux + i + 2)->cuantasSalen += peticion->cantPersonas;
+
+                strcpy(respuesta->respuesta, "RESERVA REPROGRAMADA: PARA EL MISMO DIA A LAS ");
+                solicitudesReProgramadas++;
+                int horaNueva = (aux + i)->hora;
+                char horaNuevaChar[256];
+                sprintf(horaNuevaChar, "%d", horaNueva);
+                strcat(respuesta->respuesta, horaNuevaChar);
+                strcat(respuesta->respuesta, ":00\n");
                 // hay una hora mas adelante que sirve
                 admitido = true;
+                break;
               }
             }
             if (admitido == false) {
               strcpy(respuesta->respuesta, "RESERVA NEGADA: NO HAY DISPONIBILIDAD PARA ESA HORA NI PARA EL RESTO DEL DIA");
+              solicitudesNegadas++;
               // No se encontraron parques posteriores que sirvan
             }
           }
         } else {
           strcpy(respuesta->respuesta, "RESERVA NEGADA: NO HAY BLOQUE DE DOS HORAS DISPONIBLE (PARQUE CERRADO)");
+          solicitudesNegadas++;
           // La hora solicitada es mayor a la maxima
         }
       } else {
         strcpy(respuesta->respuesta, "RESERVA NEGADA: SU FAMILIA EXCEDE EL AFORO MÁXIMO DEL PARQUE");
+        solicitudesNegadas++;
         // Negada en cualquier caso
       }
 
@@ -158,7 +293,7 @@ void *recibirMensajes(void *paquete) {
         // responde;
         strcpy(nombreNamedPipe, "/tmp/");
         strcat(nombreNamedPipe, respuesta->nombreAgente);
-        int fdwrite = open(nombreNamedPipe, O_WRONLY);
+        int fdwrite = open(nombreNamedPipe, O_RDWR);
         error = write(fdwrite, respuesta, sizeof(Peticion));
         if (error == -1) {
           perror("Error escribiendo en el pipe principal: ");
@@ -166,13 +301,21 @@ void *recibirMensajes(void *paquete) {
         }
         close(fdwrite);
       }
+    } else {
+      printf("UN AGENTE SE REGISTRÓ, SE LLAMA: %s\n", peticion->nombreAgente);
+      agentesTotalesRegistrados++;
+      strcpy(nombreNamedPipe, "/tmp/");
+      strcat(nombreNamedPipe, peticion->nombreAgente);
+      int fdwrite = open(nombreNamedPipe, O_RDWR);
+      int *horaEnviar = &Parametro->reloj->horaActual;
+      error = write(fdwrite, horaEnviar, sizeof(int));
+      if (error == -1) {
+        perror("Error escribiendo en el pipe principal: ");
+        exit(EXIT_FAILURE);
+      }
+      close(fdwrite);
     }
-    printf("ENCONTRE UN AGENTE, SE LLAMA: %s\n",peticion->nombreAgente);
-    /*
-    
-
-
-    */
+    pthread_mutex_unlock(&reportePorHoraM);
   }
   close(fdread);
   strcpy(nombreNamedPipe, "/tmp/");
@@ -183,7 +326,7 @@ void *recibirMensajes(void *paquete) {
 
 void *reportePorHora(void *parques) {
   Parque *parquesActuales = (Parque *)parques;
-  Familia *aux;
+  Familia *aux = malloc(sizeof(Familia));
   int i = 0;
   bool resultados = false;
   while (true) {
@@ -200,16 +343,14 @@ void *reportePorHora(void *parques) {
     }
     printf("La cantidad de personas que entran es %d\n", (parquesActuales + i)->cuantasEntran);
     if ((parquesActuales + i)->hora != -1) {
-      if ((parquesActuales + i)->familias != NULL) {
-        aux = (parquesActuales + i)->familias;
-        for (int j = 0; j < (parquesActuales + i)->cantFamilias; j++, aux++) {
-          if (aux->horaLlegada == (parquesActuales + i)->hora) {
-            if (!resultados) {
-              printf("Las familias que entran son:\n");
-            }
-            printf("- %s\n", aux->nombre);
-            resultados = true;
+      aux = (parquesActuales + i)->familias;
+      for (int j = 0; j < (parquesActuales + i)->cantFamilias; j++, aux++) {
+        if (aux->horaLlegada == (parquesActuales + i)->hora) {
+          if (!resultados) {
+            printf("Las familias que entran son:\n");
           }
+          printf("- %s\n", aux->nombre);
+          resultados = true;
         }
       }
     }
@@ -220,25 +361,31 @@ void *reportePorHora(void *parques) {
 
     printf("La cantidad de personas que salen es %d\n", (parquesActuales + i)->cuantasSalen);
     if ((parquesActuales + i)->hora != -1) {
-      if ((parquesActuales + i)->familias != NULL) {
-        aux = (parquesActuales + i)->familias;
-        for (int j = 0; j < (parquesActuales + i)->cantFamilias; j++, aux++) {
+      if (i > 1) {
+        aux = (parquesActuales + i - 1)->familias;
+        for (int j = 0; j < (parquesActuales + i - 1)->cantFamilias; j++, aux++) {
           if (aux->horaLlegada == (parquesActuales + i)->hora - 2) {
             if (!resultados) {
               printf("Las familias que salen son:\n");
             }
             printf("- %s\n", aux->nombre);
+            resultados = true;
           }
         }
       }
     }
     if (resultados == false) {
-      printf("No hay familias saliendo\n\n");
+      printf("No hay familias saliendo\n");
+      printf("==============================================\n\n\n");
+    } else {
+      printf("==============================================\n\n\n");
     }
+    resultados = false;
     notificar = false;
     i++;
     pthread_mutex_unlock(&reportePorHoraM);
   }
+
   return NULL;
 }
 
@@ -254,6 +401,6 @@ void inicializarParques(RetornoArgumentos argumentos, Parque parques[]) {
     parques[i].cuantasEntran = 0;
     parques[i].cuantasSalen = 0;
     parques[i].cantPersonas = 0;
-    parques[i].familias = NULL;
+    parques[i].familias = malloc(argumentos.total * sizeof(Familia));
   }
 }

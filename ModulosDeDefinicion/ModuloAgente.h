@@ -18,6 +18,7 @@ que se necesitan compartir entre varios archivos .c del proyecto.*/
 #include <sys/stat.h>  // Constantes y estructuras para manejo de archivos
 #include <sys/types.h> // Definición de tipos de datos (pid_t, etc.)
 #include <unistd.h>    // Funciones de manejo de procesos y pipes (read, write, close)
+#include <semaphore.h>
 
 typedef struct {
   char *nombre;

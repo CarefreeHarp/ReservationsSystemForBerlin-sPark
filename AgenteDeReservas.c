@@ -1,8 +1,8 @@
 /*************************************************************************************
- * Pontificia Universidad Javeriana                                                  *
+ * Pontificia Universidad Javeriana                                                                            *
  * Fecha:
- * Autores: Daniel Felipe Ramirez Vargas - Guillermo Andrés Aponte Cárdenas          *
- * Materia: Sistemas Operativos                                                      *
+ * Autores: Daniel Felipe Ramirez Vargas - Guillermo Andrés Aponte Cárdenas - David Tobar Artunduaga           *
+ * Materia: Sistemas Operativos                                                                                *
  * Descripción: 
 *************************************************************************************/
 
@@ -16,6 +16,7 @@
 
 int main(int argc, char *argv[]){
 
+    sem_t* fd_sem = sem_open("/terminarAgentes", 0);
 
     RetornoAgentes argumentos = tomarArgumentosAgente(argc, argv);
     if(argumentos.retorno == -1){
@@ -24,5 +25,8 @@ int main(int argc, char *argv[]){
     if(leerArchivo(argumentos) == -1){
         return -1;
     }
+    
+    sem_wait(fd_sem);
+    printf("AGENTE %s TERMINA.\n", argumentos.nombre);
     return 0;
 }

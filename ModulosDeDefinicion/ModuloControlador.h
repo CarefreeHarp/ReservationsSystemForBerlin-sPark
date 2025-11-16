@@ -17,12 +17,18 @@ que se necesitan compartir entre varios archivos .c del proyecto.*/
 #include <sys/stat.h> // Constantes y estructuras para manejo de archivos 
 #include <fcntl.h> // Control de apertura de archivos 
 #include <stdbool.h> // Tipo de dato booleano (true, false)
-#include <pthread.h> 
+#include <pthread.h> //manejo de hilos
+#include <semaphore.h>
 
 extern pthread_mutex_t reportePorHoraM;
 extern pthread_cond_t condiReportePorHora;
 extern bool terminado; 
 extern bool notificar;
+extern int solicitudesNegadas;
+extern int solicitudesAceptadas;
+extern int solicitudesReProgramadas;
+extern int agentesTotalesRegistrados;
+
 
 typedef struct {
     int horaIni;
@@ -44,7 +50,7 @@ typedef struct {
 typedef struct{
     int cantPersonas;
     int horaLlegada;
-    char* nombre;
+    char nombre[256];
 } Familia;
 
 typedef struct {
@@ -78,5 +84,6 @@ void* manipularReloj(void* recibe);
 void* recibirMensajes(void* paquete);
 void* reportePorHora(void* parques);
 void inicializarParques(RetornoArgumentos argumentos, Parque parques[]);
+int reporteFinal(Parque* parques, RetornoArgumentos argumentos);
 
 #endif
