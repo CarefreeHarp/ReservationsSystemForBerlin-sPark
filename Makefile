@@ -1,3 +1,15 @@
+###############################################################
+# Universidad: Pontificia Universidad Javeriana
+# Carrera: Ingeniería de Sistemas
+# Autor: Guillermo Aponte - Daniel Ramirez - David Tobar
+# Materia: Sistemas Operativos
+# Fecha: 16/11/2025
+# Archivo: Makefile
+# Descripción:
+#   Este archivo Makefile automatiza la compilación del simulador 
+#   de reservas de parques.
+###############################################################
+
 #Makefile dedicado a la automatización de la compilación del simulador de reservas
 
 #En la raíz del proyecto existe un directorio donde se guardan los módulos de definiciones
