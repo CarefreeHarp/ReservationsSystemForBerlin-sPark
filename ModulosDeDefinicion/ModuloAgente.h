@@ -50,6 +50,5 @@ typedef struct {
 // Prototipos de funciones:
 
 RetornoAgentes tomarArgumentosAgente(int argc, char *argv[]); //Procesa los argumentos pasados al agente desde la línea de comandos y retorna un struct RetornoAgentes.
-int registroControlador(RetornoAgentes argumentos); // Registra al agente en el sistema de control.
 int leerArchivo(RetornoAgentes argumentos); //Permite leer la información de un archivo de solicitudes.
 #endif

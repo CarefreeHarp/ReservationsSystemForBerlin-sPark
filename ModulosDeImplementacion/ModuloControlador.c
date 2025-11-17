@@ -166,7 +166,7 @@ int reporteFinal(Parque *parques, RetornoArgumentos argumentos) {
       printf(" %d\n", horasPico[i]);
     }
   }
-  printf(" HORA MENOS CONCURRIDA:");
+  printf(" HORAS MENOS CONCURRIDA:");
   for (int i = 0; i < k; i++) {
     if (i != k - 1) {
       printf(" %d -", horasMenosPico[i]);
