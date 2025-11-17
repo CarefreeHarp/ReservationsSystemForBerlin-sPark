@@ -1,4 +1,28 @@
-  /*Se verifica si el identificador __MODULO_CONTROLADOR_H__ ha sido definido antes.
+/***************************************************************
+ * Universidad: Pontificia Universidad Javeriana
+ * Carrera: Ingeniería de Sistemas
+ * Autor: Guillermo Aponte - Daniel Ramirez - David Tobar
+ * Materia: Sistemas Operativos
+ * Fecha: 16/11/2025
+ * Archivo: ModuloControlador.h
+ * Descripción:
+ *   Este módulo se encarga de la gestión central del sistema de 
+ *   reservas, actuando como controlador principal que coordina 
+ *   las solicitudes enviadas por los agentes y administra la 
+ *   ocupación de los parques. Maneja la sincronización entre 
+ *   múltiples hilos, asegurando que las reservas se procesen de 
+ *   manera ordenada y segura mediante mutex y semáforos. Además, 
+ *   mantiene el control del tiempo mediante un reloj interno, 
+ *   permite registrar y monitorear las entradas y salidas de las 
+ *   familias, controla el aforo máximo de los parques y genera 
+ *   reportes periódicos y finales sobre el estado de las reservas 
+ *   y la utilización de los espacios. En general, garantiza la 
+ *   correcta comunicación entre los agentes y los parques, así 
+ *   como el manejo eficiente y seguro de todas las operaciones 
+ *   del sistema.
+ ***************************************************************/
+
+/*Se verifica si el identificador __MODULO_CONTROLADOR_H__ ha sido definido antes.
  Sirve para evitar que el contenido de este archivo se incluya varias veces en un mismo programa.
  Si ya estuviera definido, el compilador se saltaría todo el contenido hasta el #endif.*/
 #ifndef __MODULO_CONTROLADOR_H__
