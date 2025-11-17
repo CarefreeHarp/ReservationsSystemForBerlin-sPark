@@ -110,18 +110,23 @@ int leerArchivo(RetornoAgentes argumentos) {
     bufferArchivo[strcspn(bufferArchivo, "\n")] = 0;
     strcpy(bufferAux, bufferArchivo);
     char *tokens = strtok(bufferAux, ",");
-    if (!tokens)
+    if (!tokens){
+      printf( "Error: línea CSV inválida \n");
       continue;
-
+    }
     strcpy(solicitudReserva->nombreFamilia, tokens);
     tokens = strtok(NULL, ",");
-    if (!tokens)
+    if (!tokens){
+     printf( "Error: línea CSV inválida\n");
       continue;
-
+    }
     solicitudReserva->horaSolicitada = atoi(tokens);
     tokens = strtok(NULL, ",");
-    if (!tokens)
+    if (!tokens){
+     printf( "Error: línea CSV inválida \n");
       continue;
+    }
+
 
     solicitudReserva->cantPersonas = atoi(tokens);
     solicitudReserva->reserva = true;
