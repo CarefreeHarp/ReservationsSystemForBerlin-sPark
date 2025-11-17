@@ -1,3 +1,22 @@
+/***************************************************************
+ * Universidad: Pontificia Universidad Javeriana
+ * Carrera: Ingeniería de Sistemas
+ * Autor: Guillermo Aponte - Daniel Ramirez - David Tobar
+ * Materia: Sistemas Operativos
+ * Fecha: 16/11/2025
+ * Archivo: ControladorDeReserva.c
+ * Descripción:
+ *   Este módulo implementa el controlador del sistema de 
+ *   reservas de parques, gestionando la entrada y salida de 
+ *   familias, recibiendo solicitudes de agentes y verificando 
+ *   la disponibilidad y capacidad de los parques. 
+ *
+ *   Maneja hilos para simular el reloj, generar reportes por hora
+ *   y procesar mensajes de agentes mediante named pipes. Coordina 
+ *   la finalización de los agentes usando semáforos y asegura la 
+ *   correcta liberación de memoria y el control de errores.
+ ***************************************************************/
+
 #include "ModulosDeDefinicion/ModuloControlador.h" //Se incluye el modulo que contiene las declaraciones de las funciones y estructuras
 
 //Se declara un contador de agentes registrados para poder terminarlos a todos al final de la ejecucion usando un named semaphore
