@@ -1,3 +1,29 @@
+/***************************************************************
+ * Universidad: Pontificia Universidad Javeriana
+ * Carrera: Ingeniería de Sistemas
+ * Autor: Guillermo Aponte - Daniel Ramirez - David Tobar
+ * Materia: Sistemas Operativos
+ * Fecha: 16/11/2025
+ * Archivo: Controlador.c
+ * Descripción:
+ *   Este módulo implementa la funcionalidad del controlador del 
+ *   sistema de reservas, encargado de coordinar la interacción 
+ *   entre los agentes y los parques. Administra las solicitudes 
+ *   de reserva, verificando la disponibilidad de espacios y el 
+ *   cumplimiento de las restricciones de aforo y horarios. 
+ *   Controla el tiempo mediante un reloj interno, permitiendo 
+ *   sincronizar la entrada y salida de familias de los parques 
+ *   en función de las horas actuales. Gestiona la comunicación 
+ *   con los agentes a través de pipes, enviando respuestas de 
+ *   aceptación, reprogramación o rechazo de reservas. Además, 
+ *   mantiene la contabilidad de solicitudes procesadas, 
+ *   sincroniza los hilos de ejecución mediante mutex y condiciones, 
+ *   y genera reportes periódicos y finales sobre la ocupación 
+ *   de los parques y el estado de las reservas. Este módulo 
+ *   garantiza que el sistema funcione de manera ordenada, segura 
+ *   y eficiente durante toda la jornada de atención.
+ ***************************************************************/
+
 #include "../ModulosDeDefinicion/ModuloControlador.h" //Se incluye el modulo que contiene las declaraciones de las funciones y estructuras
 
 pthread_mutex_t reportePorHoraM = PTHREAD_MUTEX_INITIALIZER;
