@@ -79,11 +79,17 @@ RetornoArgumentos tomarArgumentosControlador(int argc, char *argv[]) {
     return retorno;
   }
 
-  if (retorno.horaFin < 7 || retorno.horaFin > 19 || retorno.horaFin < retorno.horaIni) {
+  if (retorno.horaFin < 7 || retorno.horaFin > 19 ) {
     printf("Error: La hora de fin debe estar entre 7 y 19.\n");
     retorno.retorno = -1;
     return retorno;
   }
+   if ( retorno.horaFin < retorno.horaIni) {
+    printf("Error: La hora fin es menor que la hora de inicio.\n");
+    retorno.retorno = -1;
+    return retorno;
+  }
+
 
   retorno.retorno = 0;
   retorno.pipeRecibe = pipeRecibe;
