@@ -1,3 +1,25 @@
+/***************************************************************
+ * Universidad: Pontificia Universidad Javeriana
+ * Carrera: Ingeniería de Sistemas
+ * Autor: Guillermo Aponte - Daniel Ramirez - David Tobar
+ * Materia: Sistemas Operativos
+ * Fecha: 16/11/2025
+ * Archivo: AgenteDeReservas.c
+ * Descripción:
+ *   Este módulo implementa la funcionalidad principal de un agente
+ *   dentro del sistema de reservas. Cada agente se encarga de leer
+ *   las solicitudes de reservas desde un archivo, procesarlas y 
+ *   comunicarse con el controlador mediante pipes para enviar 
+ *   peticiones y recibir respuestas de aceptación, reprogramación 
+ *   o rechazo. Además, los agentes esperan la señal de finalización 
+ *   del controlador utilizando un semáforo, asegurando que la 
+ *   ejecución de cada agente termine de manera coordinada. Este 
+ *   módulo también se encarga de manejar errores en la lectura de 
+ *   argumentos, apertura de semáforos y comunicación con pipes, 
+ *   garantizando la correcta liberación de memoria y la finalización
+ *   ordenada del programa.
+ ***************************************************************/
+
 #include "ModulosDeDefinicion/ModuloAgente.h" //Se incluye el modulo que contiene las declaraciones de las funciones y estructuras
 
 //Funcion principal
@@ -36,6 +58,6 @@ int main(int argc, char *argv[]) {
   free(argumentos.fileSolicitud);
   free(argumentos.pipeRecibe);
 
-  //Devolvemos 0 para indicar la correcta ejecución del priograma
+  //Devolvemos 0 para indicar la correcta ejecución del programa
   return 0;
 }
