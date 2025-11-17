@@ -1,3 +1,14 @@
+/***************************************************************
+ * Universidad: Pontificia Universidad Javeriana
+ * Carrera: Ingeniería de Sistemas
+ * Autor: Guillermo Aponte - Daniel Ramirez - David Tobar
+ * Materia: Sistemas Operativos
+ * Fecha: 18/11/2025
+ * Archivo: ModuloAgente.h
+ *   Este módulo define las estructuras y prototipos de funciones
+ *   necesarios para la gestión de agentes y sus peticiones de
+ *   reservas en el sistema.
+ ***************************************************************/
 /*Se verifica si el identificador __MODULO_AGENTES_H__ ha sido definido antes.
 Sirve para evitar que el contenido de este archivo se incluya varias veces en un mismo programa.
 Si ya estuviera definido, el compilador se saltaría todo el contenido hasta el #endif.*/
@@ -21,22 +32,24 @@ que se necesitan compartir entre varios archivos .c del proyecto.*/
 #include <semaphore.h> //manejo de named semaphores
 
 typedef struct {
-  char *nombre;
-  char *fileSolicitud;
-  char *pipeRecibe;
-  int retorno;
+  char *nombre; //Nombre del agente
+  char *fileSolicitud; // Archivo de solicitudes que maneja
+  char *pipeRecibe; //Pipe para recibir datos
+  int retorno; //Código de retorno de alguna operación
 } RetornoAgentes;
 
 typedef struct {
-  bool reserva;
-  char nombreAgente[256];
-  int horaSolicitada;
-  int cantPersonas;
-  char respuesta[256];
-  char nombreFamilia[256];
+  bool reserva; // Booleano que indica si la reserva fue aceptada
+  char nombreAgente[256]; // Nombre del agente que procesa la reserva
+  int horaSolicitada; //Hora solicitada para la reserva
+  int cantPersonas; //Cantidad de personas para la reserva
+  char respuesta[256]; // Respuesta del agente (aceptado/rechazado)
+  char nombreFamilia[256]; //Nombre de la familia que realiza la reserva
 } Peticion;
 
-RetornoAgentes tomarArgumentosAgente(int argc, char *argv[]);
-int registroControlador(RetornoAgentes argumentos);
-int leerArchivo(RetornoAgentes argumentos);
+// Prototipos de funciones:
+
+RetornoAgentes tomarArgumentosAgente(int argc, char *argv[]); //Procesa los argumentos pasados al agente desde la línea de comandos y retorna un struct RetornoAgentes.
+int registroControlador(RetornoAgentes argumentos); // Registra al agente en el sistema de control.
+int leerArchivo(RetornoAgentes argumentos); //Permite leer la información de un archivo de solicitudes.
 #endif
