@@ -44,8 +44,16 @@ que se necesitan compartir entre varios archivos .c del proyecto.*/
 #include <pthread.h> //manejo de hilos
 #include <semaphore.h> //manejo de named semaphores
 
+/*Se declara un mutex pthread_mutex_t llamado reportePorHoraM*/
 extern pthread_mutex_t reportePorHoraM;
+
+/*Se inicializa un condicional pthread_cond_t condiReportePorHora*/
 extern pthread_cond_t condiReportePorHora;
+
+
+/*Se definen las variables globales que se usarán en dos archivos .c, usando la claúsula extern
+para indicarle al compilador que estas solo serán usadas una vez, pues si no se indica esto se producirían 
+errores de compilación al duplicarse las variables globales para cada modulo que las use*/
 extern bool terminado; 
 extern bool notificar;
 extern int solicitudesNegadas;
@@ -53,49 +61,56 @@ extern int solicitudesAceptadas;
 extern int solicitudesReProgramadas;
 extern int agentesTotalesRegistrados;
 
-
+/*Estructura que guarda todos los argumenros ingresados por el usuario para poderse usar en funciones siguientes*/
 typedef struct {
-    int horaIni;
-    int horaFin;
-    int segHoras;
-    int total;
-    char* pipeRecibe;
-    int retorno;
+    int horaIni; //Hora de inicio
+    int horaFin; //Hora de fin
+    int segHoras; //Segundos por hora
+    int total; //Aforo total
+    char* pipeRecibe; //Nombre del pipe por el que se reciben las solicitudes
+    int retorno; //Variable de retorno para saber si hubo errores al tomar los argumentos
 } RetornoArgumentos;
 
-
+/*Estructura que guarda todas las variables necesarias para el reloj*/
 typedef struct {
-    int horaIni;
-    int segHoras;
-    int horaActual;
-    int horaFin;
+    int horaIni; //Hora de inicio
+    int segHoras; //Segundos por hora
+    int horaActual; //Hora actual
+    int horaFin; //Hora de fin
 } Reloj;
 
+
+/*Estructura que guarda todos los datos importantes de una familiar*/
 typedef struct{
-    int cantPersonas;
-    int horaLlegada;
-    char nombre[256];
+    int cantPersonas; //Cantidad de personas en la familia
+    int horaLlegada; //Hora de llegada de la familia
+    char nombre[256]; //Nombre de la familia
 } Familia;
 
+
+/*Estructura que guarda todos los datos importantes de un parque*/
 typedef struct {
-    int cantFamilias;
-    Familia* familias;
-    int cuantasSalen;
-    int cuantasEntran;
-    int aforoMaximo;
-    int cantPersonas;
-    int hora;
+    int cantFamilias; //Cantidad de familias en el parque
+    Familia* familias; //Puntero a la lista de familias en el parque
+    int cuantasSalen; //Cantidad de personas que salen
+    int cuantasEntran; //Cantidad de personas que entran
+    int aforoMaximo; //Aforo máximo del parque
+    int cantPersonas; //Cantidad actual de personas en el parque
+    int hora; //Hora del parque
 } Parque;
 
+
+/*Estructura que guarda cada peticiópn realizada por un agente*/
 typedef struct {
-  bool reserva;
-  char nombreAgente[256];
-  int horaSolicitada;
-  int cantPersonas;
-  char respuesta[256];
-  char nombreFamilia[256];
+  bool reserva; //Indica si es una reserva o una presentación 
+  char nombreAgente[256]; //Nombre del agente que envía la petición
+  int horaSolicitada; //Hora solicitada para la reserva o presentación
+  int cantPersonas; //Cantidad de personas en la petición
+  char respuesta[256]; //Respuesta del controlador a la petición
+  char nombreFamilia[256]; //Nombre de la familia en la petición
 } Peticion;
 
+/*Estructura que guarda todas las estructuras necesarias para usarse en la función que recibe las solicitudes*/
 typedef struct{
     Reloj* reloj;
     RetornoArgumentos argumentos;
@@ -103,11 +118,11 @@ typedef struct{
 } Paquete;
 
 
-RetornoArgumentos tomarArgumentosControlador(int argc, char *argv[]);
-void* manipularReloj(void* recibe);
-void* recibirMensajes(void* paquete);
-void* reportePorHora(void* parques);
-void inicializarParques(RetornoArgumentos argumentos, Parque parques[]);
-int reporteFinal(Parque* parques, RetornoArgumentos argumentos);
+RetornoArgumentos tomarArgumentosControlador(int argc, char *argv[]); //Función que toma los argumentos ingresados por el usuario al iniciar el programa
+void* manipularReloj(void* recibe); //Función que maneja el reloj interno del sistema
+void* recibirMensajes(void* paquete); //Función que recibe las solicitudes enviadas por los agentes, las procesa y les da su respuesta
+void* reportePorHora(void* parques); //Función que genera reportes por hora sobre las familias que entran y salen de los parques
+void inicializarParques(RetornoArgumentos argumentos, Parque parques[]); //Función que inicializa los parques según los argumentos ingresados por el usuario
+int reporteFinal(Parque* parques, RetornoArgumentos argumentos); //Función que genera el reporte final al terminar la simulación
 
 #endif
